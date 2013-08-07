@@ -16,8 +16,8 @@ Authenticate with rackspace using your cloud credentials as follows:
     rumm login
       username: joe
       password: ****
-      logged in, credentials written to ~/.netrc
-      
+      Default Region (Enter for ord):
+      logged in, credentials written to ~/.rumm
 
 Now we can see the list of servers we have available:
 
@@ -30,7 +30,11 @@ Create the server:
     rumm create server
       created server divine-reef
         id: 52415800-8b69-11e0-9b19-734f565bc83b, hostId: e4d909c290d0fb1ca068ffaddf22cbd0, ip: 67.23.10.138, image: CentOS 5.2
-        
+
+To use rumm out side of your default region, prefix the rumm command with the `REGION` environment variable as follows:
+
+  REGION=syd rumm create server
+
 For further help, including a full listing of commands, type:
 
     rumm help

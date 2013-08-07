@@ -3,7 +3,7 @@ require "spec_helper"
 describe "using the server api" do
   context "with credentials are present" do
 
-    include_context "netrc"
+    include_context ".rumm"
 
     context "when I list all my servers (and I don't have any')" do
       When {VCR.use_cassette('show-servers') {run "rumm show servers"}}

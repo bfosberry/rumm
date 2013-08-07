@@ -2,7 +2,8 @@ require "rumm"
 require "vcr"
 require "aruba/api"
 require "rspec-given"
-require "netrc"
+require "rumm/configuration"
+
 $: << File.expand_path("../../app/providers", __FILE__)
 
 module Rumm::SpecHelper
@@ -30,6 +31,8 @@ RSpec.configure do |config|
       :file_path => /spec\/features/
   }
   config.include Rumm::SpecHelper
+  config.mock_with :mocha
+
 
   config.before(:each){ Aruba::InProcess.main_class.input.clear }
 
@@ -43,27 +46,25 @@ RSpec.configure do |config|
   end
 end
 
-shared_context "netrc" do
+shared_context ".rumm" do
   Given(:home) {Pathname(set_env "HOME", File.expand_path(current_dir))}
   before do
-    if netrc = Netrc.read['api.rackspace.com']
-      login, api_token = netrc
-    else
-      login, api_token = '<rackspace-username>', '<rackspace-api-token>'
-    end
-    File.open(home.join('.netrc'), "w") do |f|
+    login = Rumm::Configuration.username || '<rackspace-username>'
+    api_token = Rumm::Configuration.api_key || '<rackspace-api-token>'
+    region = Rumm::Configuration.region || 'ord'
+
+    File.open(home.join('.rumm'), 'w') do |f|
       f.chmod 0600
-      f.puts "machine api.rackspace.com"
-      f.puts "  login #{login}"
-      f.puts "  password #{api_token}"
+      f.puts "{\"environments\":{\"default\":{\"region\":\"#{region}\",\"username\":\"#{login}\",\"api_key\":\"#{api_token}\"}}}"
     end
+    Rumm::Configuration.instance.reload
   end
 end
 
 VCR.configure do |c|
   c.default_cassette_options = {:record => :once}
   c.hook_into :excon
-  #c.debug_logger = $stderr
+  # c.debug_logger = $stderr
 
   c.cassette_library_dir = 'spec/fixtures/cassettes'
   c.filter_sensitive_data("<rackspace-username>") do

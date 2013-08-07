@@ -1,7 +1,7 @@
 require "net/https"
 require "json"
-require "netrc"
 require "excon"
+require 'rumm/configuration'
 
 class AuthenticationController < MVCLI::Controller
 
@@ -12,12 +12,13 @@ class AuthenticationController < MVCLI::Controller
     username = login_info.name
     password = login_info.password
 
-    connection = Excon.new('https://identity.api.rackspacecloud.com')
+    uri = URI.parse(Rumm::Configuration.auth_endpoint)
+    connection = Excon.new(uri.to_s)
 
     headers = {'Content-Type' => 'application/json'}
     body = {auth: {passwordCredentials: {username: username, password: password}}}
 
-    response = connection.post headers: headers, body: body.to_json, path: '/v2.0/tokens'
+    response = connection.post headers: headers, body: body.to_json, path: "#{uri.path}/tokens"
 
     #TODO check the status code of the request
     user_info = Map(JSON.parse response.body)
@@ -26,20 +27,20 @@ class AuthenticationController < MVCLI::Controller
     fail "User could not be authenticated" unless user_info[:access]
 
     headers.merge!({'X-Auth-Token' => user_info.access.token.id})
-    response = connection.get headers: headers, path: "/v2.0/users/#{user_info.access.user.id}/OS-KSADM/credentials/RAX-KSKEY:apiKeyCredentials"
+    response = connection.get headers: headers, path: "#{uri.path}/users/#{user_info.access.user.id}/OS-KSADM/credentials/RAX-KSKEY:apiKeyCredentials"
 
     user_credentials = Map(JSON.parse response.body)
 
-    netrc = Netrc.read
-    netrc['api.rackspace.com'] = username, user_credentials["RAX-KSKEY:apiKeyCredentials"].apiKey
-    netrc.save
+    Rumm::Configuration.username = username
+    Rumm::Configuration.api_key = user_credentials["RAX-KSKEY:apiKeyCredentials"].apiKey
+    Rumm::Configuration.region = login_info.region
+    Rumm::Configuration.save
 
     user_info
   end
 
   def logout
-    n = Netrc.read
-    n.delete 'api.rackspace.com'
-    n.save
+    Rumm::Configuration.delete
   end
+
 end
